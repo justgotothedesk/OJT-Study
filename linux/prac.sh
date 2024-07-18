@@ -12,10 +12,12 @@ rm *.txt
 ps aux | grep 'target'
 
 # 5. 특정 user가 실행 중인 프로세스를 실시간으로 사용 중인 특정 리소스 순으로 정렬하여 확인하는 방법은?
-ps aux --sort=%mem
+ps aux --sort=%mem # 오름차순
+ps aux --srot=-%mem # 내림차순
 
 # 1. 하위 디렉토리의 특정 depth까지의 디스크 사용량을 조회하고 용량 단위를 붙여 출력하는 명령어는?
 du -h --max-depth=2 | sort -hr
+du -h -b --max-depth=2 | sort -hr # byte 단위로 조회
 
 # 2. 현재 디렉터리에 있는 파일/디렉터리들 중에서 이름에 특정 키워드가 들어간 파일/디렉토리의 갯수를 출력하는 명령어는?
 ls | grep -c 'target'
