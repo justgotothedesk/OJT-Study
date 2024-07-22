@@ -68,7 +68,7 @@ int parse_json(const char *json_string) {
 }
 
 int main() {
-    const char *filename = "C\\실무\\build\\thread.json";
+    const char *filename = "C:\\실무\\build\\thread.json";
     FILE *file = fopen(filename, "r");
     if (!file) {
         fprintf(stderr, "Error opening file: %s\n", filename);
