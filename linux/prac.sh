@@ -35,3 +35,12 @@ grep -iR --include="*filename*" --exclud="*.txt" "searchname" . > filter.txt
 ssh user@remote_host '/path'
 
 # 7. 특정 디렉토리에 있는 특정 확장자 파일에서 특정 문구를 모두 원하는 문구로 수정하는 명령어는?
+find /etc/yum/repo.d/ -name "*.repo" -exec sh -c '
+for file do
+    cp "$file" "$file.back"
+    sed -i "s/enabled=1/enabled=0/g" "$file"
+done
+' sh {} +
+
+# 8. 현재 디렉터리에 있는 파일/디렉터리를 파일 크기 순으로 정렬하고 파일 크기가 큰 top 10개를 출력하기
+ls -al | head -n 10
