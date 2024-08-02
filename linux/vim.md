@@ -18,5 +18,5 @@
 - undo/redo, u/ctrl+r
 - 이전 명령 반복: .
 - 코드 접기/펼치기: zc/zo
-- vim 창에서 ctags 명령어 사용
-- vim 창에서 cscope 명령어 사용
+- vim 창에서 ctags 명령어 사용: :tj+검색어 or ctrl+]
+- vim 창에서 cscope 명령어 사용: :cs find+질의종류+심벌
