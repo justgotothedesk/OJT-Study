@@ -5,9 +5,9 @@
 #include <stdatomic.h>
 #include <time.h>
 
-#define INCREMENT_COUNT 1000000
+#define INCREMENT_COUNT 100000000
 #define THREAD_COUNT 8
-#define EXPECTED_RESULT 8000000
+#define EXPECTED_RESULT 800000000
 
 // Regular Global Variable
 int global_var = 0;
