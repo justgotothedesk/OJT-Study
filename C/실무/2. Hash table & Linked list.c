@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
+
+#define HASH_SIZE 31
 
 struct hash_table {
     struct linked_list *head;
@@ -15,7 +18,6 @@ struct linked_list {
 
 int main() {
     srand(time(NULL));
-    int hash_size = 31;
     char *key[50];
     FILE *fp = fopen("C:\\실무\\build\\hash.csv", "r");
     if (fp == NULL) {
@@ -49,14 +51,14 @@ int main() {
 
     fclose(fp);
 
-    struct hash_table table[hash_size];
-    for (int i = 0; i < hash_size; i++) {
+    struct hash_table table[HASH_SIZE];
+    for (int i = 0; i < HASH_SIZE; i++) {
         table->head = NULL;
         table->list_entry = 0;
     }
 
     for (int i = 0; i < cursor; i++) {
-        int index = rand()%hash_size;
+        int index = rand()%HASH_SIZE;
         struct linked_list *new_node = (struct linked_list *)malloc(sizeof(struct linked_list));
         if (new_node == NULL) {
             perror("Memory allocation failed\n");
@@ -80,7 +82,7 @@ int main() {
         table[index].list_entry++;
     }
 
-    for (int i = 0; i < hash_size; i++) {
+    for (int i = 0; i < HASH_SIZE; i++) {
         printf("Index: %d ", i);
         struct linked_list *current = table[i].head;
         while (current) {
@@ -90,7 +92,7 @@ int main() {
         printf("\n");
     }
 
-    for (int i = 0; i < hash_size; i++) {
+    for (int i = 0; i < HASH_SIZE; i++) {
         struct linked_list *current = table[i].head;
         while (current) {
             struct linked_list *temp = current;

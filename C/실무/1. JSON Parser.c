@@ -93,6 +93,7 @@ int main() {
     parse_json(json_string);
 
     free(json_string);
+    
     return 0;
 }
 
