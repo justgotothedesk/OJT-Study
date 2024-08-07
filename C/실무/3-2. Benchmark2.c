@@ -5,9 +5,9 @@
 #include <stdatomic.h>
 #include <time.h>
 
-#define INCREMENT_COUNT 100000000
+#define INCREMENT_COUNT 1000000
 #define THREAD_COUNT 8
-#define EXPECTED_RESULT 800000000
+#define EXPECTED_RESULT 8000000
 
 // Regular Global Variable
 int global_var = 0;
@@ -16,6 +16,7 @@ void *increment_global_var(void *args) {
     for (int i = 0; i < INCREMENT_COUNT; i++) {
         global_var++;
     }
+    pthread_exit(NULL);
 }
 
 // Regular Local Variable
@@ -25,6 +26,7 @@ void *increment_local_var(void *args) {
         local_var++;
     }
     *(int *)args = local_var;
+    pthread_exit(NULL);
 }
 
 // Atomic Global Variable
@@ -34,6 +36,7 @@ void *increment_atomic_global_var(void *args) {
     for (int i = 0; i < INCREMENT_COUNT; i++) {
         atomic_fetch_add(&atomic_global_var, 1);
     }
+    pthread_exit(NULL);
 }
 
 // Atomic Local Variable
@@ -43,6 +46,7 @@ void *increment_atomic_local_var(void *args) {
         atomic_fetch_add(&atomic_local_var, 1);
     }
     *(atomic_int *)args = atomic_local_var;
+    pthread_exit(NULL);
 }
 
 // Spinlock Variable
@@ -58,6 +62,7 @@ void *increment_spinlock_var(void *args) {
         var->value++;
         pthread_spin_unlock(&var->spinlock);
     }
+    pthread_exit(NULL);
 }
 
 // Semaphore Variable
@@ -73,6 +78,7 @@ void *increment_semaphore_var(void *args) {
         var->value++;
         sem_post(&var->semaphore);
     }
+    pthread_exit(NULL);
 }
 
 // Array Variable
@@ -83,6 +89,7 @@ void *increment_array_var(void *args) {
     for (int i = 0; i < INCREMENT_COUNT; i++) {
         array[index*8]++;
     }
+    pthread_exit(NULL);
 }
 
 // TLS Variable
@@ -93,6 +100,7 @@ void *increment_tls_var(void *args) {
         tls_variable++;
     }
     *(int *)args = tls_variable;
+    pthread_exit(NULL);
 }
 
 void run() {
@@ -103,7 +111,6 @@ void run() {
     printf("==========   Thread num: %d   ==========\n", THREAD_COUNT);
 
     // Regular Global Variable Test
-    global_var = 0;
     start = clock();
     for (int i = 0; i < THREAD_COUNT; i++) {
         pthread_create(&threads[i], NULL, increment_global_var, NULL);
