@@ -13,94 +13,92 @@ struct hash_table {
 
 struct linked_list {
     struct linked_list *next;
-    char *data;
+    char *key;
 };
 
-int main() {
-    srand(time(NULL));
-    char *key[50];
-    FILE *fp = fopen("C:\\실무\\build\\hash.csv", "r");
-    if (fp == NULL) {
-        perror("There is no file\n");
+int hash_function(const char *key) {
+    int hash = 0;
+    while (*key) {
+        hash = (hash*31+*key)%HASH_SIZE;
+        key++;
+    }
 
-        return 0;
+    return hash;
+}
+
+struct linked_list *create_node(const char *key) {
+    struct linked_list *node = (struct linked_list *)malloc(sizeof(struct linked_list));
+    if (node == NULL) {
+        perror("Memory allocation failed");
+        exit(EXIT_FAILURE);
+    }
+    node->key = strdup(key);
+    if (node->key == NULL) {
+        perror("Memory allocation failed");
+        free(node);
+        exit(EXIT_FAILURE);
+    }
+    node->next = NULL;
+
+    return node;
+}
+
+void insert_to_table(struct hash_table *table, const char *key) {
+    int index = hash_function(key);
+    struct linked_list *new_node = create_node(key);
+    new_node->next = table[index].head;
+    table[index].head = new_node;
+    table[index].list_entry++;
+}
+
+void read_csv_and_insert(const char *filename, struct hash_table *table) {
+    FILE *fp = fopen(filename, "r");
+    if (fp == NULL) {
+        perror("No file");
+        exit(EXIT_FAILURE);
     }
 
     char line[1024];
-    int cursor = 0;
     while (fgets(line, sizeof(line), fp)) {
-        char *token = strtok(line, ",");
+        char *token = strtok(line, ", \n");
         while (token) {
-            if (cursor >= 50) {
-                perror("Too many keys\n");
-                fclose(fp);
-
-                return 0;
-            }
-            key[cursor] = strdup(token);
-            if (key[cursor] == NULL) {
-                perror("Many allocation failed\n");
-                fclose(fp);
-
-                return 0;
-            }
-            cursor += 1;
-            token = strtok(NULL, ",");
+            insert_to_table(table, token);
+            token = strtok(NULL, ", \n");
         }
     }
 
     fclose(fp);
+}
 
-    struct hash_table table[HASH_SIZE];
+void print_hash_table(struct hash_table *table) {
     for (int i = 0; i < HASH_SIZE; i++) {
-        table->head = NULL;
-        table->list_entry = 0;
-    }
-
-    for (int i = 0; i < cursor; i++) {
-        int index = rand()%HASH_SIZE;
-        struct linked_list *new_node = (struct linked_list *)malloc(sizeof(struct linked_list));
-        if (new_node == NULL) {
-            perror("Memory allocation failed\n");
-            
-            return 0;
-        }
-
-        new_node->data = key[i];
-        new_node->next = NULL;
-
-        if (table[index].head == NULL) {
-            table[index].head = new_node;
-        } else {
-            struct linked_list *current = table[index].head;
-            while (current->next != NULL) {
-                current = current->next;
-            }
-            current->next = new_node;
-        }
-
-        table[index].list_entry++;
-    }
-
-    for (int i = 0; i < HASH_SIZE; i++) {
-        printf("Index: %d ", i);
+        printf("Hash index: %d ", i);
         struct linked_list *current = table[i].head;
         while (current) {
-            printf("%s -> ", current->data);
+            printf("[key: %s] -> ", current->key);
             current = current->next;
         }
-        printf("\n");
+        printf("NULL\n");
     }
+}
 
+void free_hash_table(struct hash_table *table) {
     for (int i = 0; i < HASH_SIZE; i++) {
         struct linked_list *current = table[i].head;
         while (current) {
             struct linked_list *temp = current;
             current = current->next;
-            free(temp->data);
+            free(temp->key);
             free(temp);
         }
     }
+}
+
+int main() {
+    struct hash_table table[HASH_SIZE] = {0};
+    read_csv_and_insert("hash.csv", table);
+    print_hash_table(table);
+    free_hash_table(table);
 
     return 0;
 }
