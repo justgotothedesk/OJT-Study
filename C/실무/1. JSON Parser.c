@@ -89,7 +89,6 @@ int parse_json(const char *json_string) {
                             *(name_end+1) ='\0';
 
                             printf("sub_thread name: %s\n", name_start);
-                            printf("=================\n\n");
 
                             strcpy(thread_name[name_index], name_start);
                             name_index++;
@@ -100,6 +99,7 @@ int parse_json(const char *json_string) {
                 }
                 ptr++;
             }
+            printf("=================\n\n");
         }
     }
 
@@ -121,6 +121,11 @@ void* thread_function(void* arg) {
     int length = 5;
     char random_word[length+1];
     int index = *(int*)arg;
+
+    srand(time(NULL)+index);
+    // srand(time(NULL))을 하게 되면, multi thread가 같은 난수의 시작점을 결정하므로 같은 값이 반환된다.
+    // time(NULL)은 초 단위의 현재 시간으로 난수의 시작점을 결정하므로
+    // 여러 thread가 동시에 실행된다면 모든 thread는 같은 시드 값을 통해서 같은 난수를 갖게 된다.
     
     for (int i = 0; i < repeat_num; i++) {
         genearte_random_word(random_word, length);
@@ -131,7 +136,6 @@ void* thread_function(void* arg) {
 }
 
 int main() {
-    srand(time(NULL));
     const char *filename = "thread.json";
     FILE *file = fopen(filename, "r");
     if (!file) {
