@@ -3,201 +3,314 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <time.h>
-#include <json-c/json.h>
 
 #define HASH_SIZE 31
 
-struct hash_table {
-    struct linked_list *head;
-    int list_entry;
-};
-
-struct linked_list {
+typedef struct linked_list {
     struct linked_list *next;
-    char *data;
-};
+    char *key;
+} linked_list;
 
-enum thread_status {
-    INIT, RUNNING, DONE, SLEEP
-};
+typedef struct {
+    linked_list *head;
+    int list_entry;
+} hash_table;
 
-struct thread_info {
+typedef enum {
+    INIT,
+    RUNNING,
+    DONE,
+    SLEEP
+} ThreadStatus;
+
+typedef struct {
     pthread_t thread_id;
-    char *name;
-    char *filename;
-    struct hash_table *table;
-    enum thread_status status;
-};
+    hash_table table[HASH_SIZE];
+    char name[256];
+    ThreadStatus status;
+} ThreadInfo;
 
-void *thread_func(void *arg) {
-    struct thread_info *tinfo = arg;
-    tinfo->status = INIT;
-    printf("%s: INIT\n", tinfo->name);
-    SLEEP(1);
+pthread_mutex_t print_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-    srand(time(NULL)^pthread_self());
+int repeat_num = 0;
+int thread_num = 0;
+char thread_name[256][256];
 
-    tinfo->table = malloc(sizeof(struct hash_table)*HASH_SIZE);
-    for (int i = 0; i < HASH_SIZE; i++) {
-        tinfo->table[i].head = NULL;
-        tinfo->table[i].list_entry = 0;
+const char *status_to_string(ThreadStatus status) {
+    switch (status) {
+        case INIT:
+            return "INIT";
+        case RUNNING:
+            return "RUNNING";
+        case DONE:
+            return "DONE";
+        case SLEEP:
+            return "SLEEP";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+char* extract_value(const char *json_string, const char *key, char *buffer) {
+    char *key_position = strstr(json_string, key);
+    if (!key_position) { 
+        return NULL;
     }
 
-    tinfo->status = RUNNING;
-    printf("%s: RUNNING\n", tinfo->name);
-    SLEEP(1);
+    char *colon = strchr(key_position, ':');
+    if (!colon) {
+        return NULL;
+    }
 
-    FILE *fp = fopen(tinfo->filename, "r");
+    char *value_start = colon+1;
+    while (*value_start == ' ' || *value_start == '\"' || *value_start == '\n') {
+        value_start++;
+    }
+
+    char *value_end;
+    if (*value_start == '[') {
+        value_end = strchr(value_start, ']')+1;
+    } else {
+        value_end = value_start;
+        while (*value_end != ' ' && *value_end != '\"' && *value_end != '\n' && *value_end != ',' && *value_end != '}' && *value_end != ']') {
+             value_end++;
+        }
+    }
+
+    strncpy(buffer, value_start, value_end - value_start);
+    buffer[value_end - value_start] = '\0';
+
+    return buffer;
+}
+
+int parse_json(const char *json_string) {
+    char buffer[256];
+
+    if (extract_value(json_string, "repeat", buffer)) {
+        printf("repeat: %s\n", buffer);
+        repeat_num = atoi(buffer);
+    }
+
+    if (extract_value(json_string, "thread_num", buffer)) {
+        printf("thread_num: %s\n", buffer);
+        thread_num = atoi(buffer);
+    }
+
+    const char *thread_array = strstr(json_string, "\"thread\"");
+    if (thread_array) {
+        thread_array = strchr(thread_array, '[');
+        if (thread_array) {
+            int thread_count = 0;
+            const char *ptr = thread_array;
+            while ((ptr = strchr(ptr, '{')) != NULL) {
+                thread_count++;
+                ptr++;
+            }
+            printf("thread array size: %d\n", thread_count);
+
+            ptr = thread_array;
+            for (int i = 0; i < thread_count; i++) {
+                ptr = strchr(ptr, '{');
+                if (!ptr) {
+                    break;
+                }
+                if (extract_value(ptr, "name", buffer)) {
+                    if (buffer[0] == '[') {
+                        char *name_ptr = buffer+1;
+                        char name_buffer[256];
+                        int name_index = 0;
+
+                        while ((name_ptr = strtok(name_ptr, ",]"))) {
+                            char *name_start = name_ptr;
+                            while (*name_start == ' ' || *name_start == '\"') {
+                                name_start++;
+                            }
+                            char *name_end = name_start+strlen(name_start)-1;
+                            while (*name_end == ' ' || *name_end == '\"') {
+                                name_end--;
+                            }
+                            *(name_end+1) ='\0';
+
+                            printf("sub_thread name: %s\n", name_start);
+                            strcpy(thread_name[name_index], name_start);
+
+                            name_index++; 
+                            name_ptr = NULL;
+                        }
+                    }
+                }
+                ptr++;
+            }
+            printf("=================\n\n");
+        }
+    }
+
+    return 1;
+}
+
+int hash_function(const char *key) {
+    int hash = 0;
+    while (*key) {
+        hash = (hash * 31 + *key) % HASH_SIZE;
+        key++;
+    }
+
+    return hash;
+}
+
+linked_list *create_node(const char *key) {
+    linked_list *node = (linked_list *)malloc(sizeof(linked_list));
+    if (node == NULL) {
+        perror("Memory allocation failed");
+        exit(EXIT_FAILURE);
+    }
+    node->key = strdup(key);
+    if (node->key == NULL) {
+        perror("Memory allocation failed");
+        free(node);
+        exit(EXIT_FAILURE);
+    }
+    node->next = NULL;
+
+    return node;
+}
+
+void insert_to_table(hash_table *table, const char *key) {
+    int index = hash_function(key);
+    linked_list *new_node = create_node(key);
+    new_node->next = table[index].head;
+    table[index].head = new_node;
+    table[index].list_entry++;
+}
+
+void read_csv_and_insert(const char *filename, hash_table *table) {
+    FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
-        perror("There is no file");
-        tinfo->status = DONE;
-        
-        return 0;
+        perror("No file");
+        exit(EXIT_FAILURE);
     }
 
     char line[1024];
-    int cursor = 0;
-    char *key[50];
     while (fgets(line, sizeof(line), fp)) {
-        char *token = strtok(line, ",");
+        char *token = strtok(line, ", \n");
         while (token) {
-            if (cursor >= 50) {
-                perror("Too many keys\n");
-                fclose(fp);
-                tinfo->status = DONE;
-                return NULL;
-            }
-            key[cursor] = strdup(token);
-            if (key[cursor] == NULL) {
-                perror("Memory allocation failed\n");
-                fclose(fp);
-                tinfo->status = DONE;
-                return NULL;
-            }
-            cursor += 1;
-            token = strtok(NULL, ",");
+            insert_to_table(table, token);
+            token = strtok(NULL, ", \n");
         }
     }
+
     fclose(fp);
+}
 
-    for (int i = 0; i < cursor; i++) {
-        int index = rand() % HASH_SIZE;
-        struct linked_list *new_node = (struct linked_list *)malloc(sizeof(struct linked_list));
-        if (new_node == NULL) {
-            perror("Memory allocation failed\n");
-            tinfo->status = DONE;
-            return NULL;
+void print_hash_table(hash_table *table, ThreadInfo *thread) {
+    pthread_mutex_lock(&print_mutex);
+    printf("----- Thread %s's hash table -----\n", thread->name);
+    for (int i = 0; i < HASH_SIZE; i++) {
+        printf("Hash index: %d ", i);
+        linked_list *current = table[i].head;
+        while (current) {
+            printf("[key: %s] -> ", current->key);
+            current = current->next;
         }
-
-        new_node->data = key[i];
-        new_node->next = NULL;
-
-        if (tinfo->table[index].head == NULL) {
-            tinfo->table[index].head = new_node;
-        } else {
-            struct linked_list *current = tinfo->table[index].head;
-            while (current->next != NULL) {
-                current = current->next;
-            }
-            current->next = new_node;
-        }
-
-        tinfo->table[index].list_entry++;
+        printf("NULL\n");
     }
+    pthread_mutex_unlock(&print_mutex);
+}
 
-    tinfo->status = SLEEP;
-    printf("%s: SLEEP\n", tinfo->name);
-    sleep(2);
+void free_hash_table(hash_table *table) {
+    for (int i = 0; i < HASH_SIZE; i++) {
+        linked_list *current = table[i].head;
+        while (current) {
+            linked_list *temp = current;
+            current = current->next;
+            free(temp->key);
+            free(temp);
+        }
+    }
+}
 
-    tinfo->status = DONE;
-    printf("%s: DONE\n", tinfo->name);
+void *thread_func(void *arg) {
+    ThreadInfo *thread_info = (ThreadInfo *)arg;
+
+    thread_info->status = INIT;
+    printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
+
+    read_csv_and_insert("hash.csv", thread_info->table);
+
+    sleep(1);
+
+    thread_info->status = RUNNING;
+    printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
+
+    sleep(1);
+
+    thread_info->status = SLEEP;
+    printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
+    print_hash_table(thread_info->table, thread_info);
+
+    sleep(1);
+
+    thread_info->status = DONE;
+    printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
+    print_hash_table(thread_info->table, thread_info);
+
+    free_hash_table(thread_info->table);
 
     return NULL;
 }
 
 int main() {
-    FILE *fp = fopen("C\\실무\\build\\thread.json", "r");
-    if (fp == NULL) {
-        perror("There is no file");
-
-        return 0;
+    const char *filename = "thread.json";
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        fprintf(stderr, "Error opening file: %s\n", filename);
+        return 1;
     }
 
-    fseek(fp, 0, SEEK_END);
-    long fsize = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    
-    char *json_str = malloc(fsize+1);
-    fread(json_str, 1, fsize, fp);
-    fclose(fp);
-    json_str[fsize] = 0;
+    fseek(file, 0, SEEK_END);
+    long length = ftell(file);
+    fseek(file, 0, SEEK_SET);
 
-    struct json_object *parsed_json;
-    struct json_object *repeat;
-    struct json_object *thread_num;
-    struct json_object *threads;
-    struct json_object *thread;
-    struct json_object *name;
-
-    parsed_json = json_tokener_parse(json_str);
-    json_object_object_get_ex(parsed_json, "repeat", &repeat);
-    json_object_object_get_ex(parsed_json, "thread_num", &thread_num);
-    json_object_object_get_ex(parsed_json, "thread", &threads);
-
-    int num_threads = json_object_get_int(thread_num);
-
-    struct thread_info tinfo[num_threads];
-
-    char filenames[num_threads][20];
-    for (int i = 0; i < num_threads; i++) {
-        sprintf(filenames[i], "hash%d.csv", i+1)    ;
-        thread = json_object_array_get_idx(threads, i);
-        json_object_get_ex(thread, "name", &name);
-
-        tinfo[i].name = strdup(json_object_get_string(name));
-        tinfo[i].filename = filenames[i];
-        tinfo[i].status = INIT;
-
-        pthread_create(&tinfo[i].thread_id, NULL, thread_func, &tinfo[i]);
+    char *json_string = (char *)malloc(length + 1);
+    if (!json_string) {
+        fprintf(stderr, "Memory allocation error\n");
+        fclose(file);
+        return 1;
     }
 
-    int all_done = 0;
-    while (!all_done) {
-        all_done = 1;
-        for (int i = 0; i < num_threads; i++) {
-            printf("%s: ", tinfo[i].name);
-            switch (tinfo[i].status)
-            {
-                case INIT:
-                    printf("INIT\n");
-                    break;
-                case RUNNING:
-                    printf("RUNNING\n");
-                    break;
-                case SLEEP:
-                    printf("SLEEP\n");
-                    break;
-                case DONE:
-                    printf("DONE\n");
-                    break;            
-                default:
-                    break;
-            }
-            if (tinfo[i].status != DONE) {
-                all_done = 0;
-            }
+    fread(json_string, 1, length, file);
+    json_string[length] = '\0';
+    fclose(file);
+
+    parse_json(json_string);
+
+    ThreadInfo *threads = malloc(thread_num * sizeof(ThreadInfo));
+    if (!threads) {
+        fprintf(stderr, "Memory allocation error\n");
+        free(json_string);
+        return 1;
+    }
+
+    for (int i = 0; i < thread_num; i++) {
+        for (int j = 0; j < HASH_SIZE; j++) {
+            threads[i].table[j].head = NULL;
+            threads[i].table[j].list_entry = 0;
         }
-        SLEEP(1);
-    }
-    
-    for (int i = 0; i < num_threads; i++) {
-        pthread_join(tinfo[i].thread_id, NULL);
-        printf("%s hash table:\n", tinfo[i].name);
+        strcpy(threads[i].name, thread_name[i]);
+        threads[i].status = INIT;
+
+        if (pthread_create(&threads[i].thread_id, NULL, thread_func, &threads[i]) != 0) {
+            fprintf(stderr, "Error creating thread %d\n", i);
+            return 1;
+        }
     }
 
-    free(json_str);
-    json_object_put(parsed_json);
+    for (int i = 0; i < thread_num; i++) {
+        pthread_join(threads[i].thread_id, NULL);
+    }
+
+    free(threads);
+    pthread_mutex_destroy(&print_mutex);
 
     return 0;
 }
