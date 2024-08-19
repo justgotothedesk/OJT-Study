@@ -2,7 +2,7 @@
 #include "b.h"
 
 int main() {
-	foo();
+	func();
 	bar();
 
 	return 0;
