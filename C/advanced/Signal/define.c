@@ -46,7 +46,8 @@ int parse_json(const char *filename) {
     FILE *file = fopen(filename, "r");
     if (!file) {
         perror("Error opening file");
-        return 0;  // 함수가 실패 시 0 반환
+
+        return 0;
     }
 
     fseek(file, 0, SEEK_END);
@@ -57,7 +58,8 @@ int parse_json(const char *filename) {
     if (!json_string) {
         perror("Memory allocation error");
         fclose(file);
-        return 0;  // 메모리 할당 실패 시 0 반환
+
+        return 0;
     }
 
     fread(json_string, 1, length, file);
@@ -119,7 +121,7 @@ int parse_json(const char *filename) {
                 }
                 ptr++;
             }
-            printf("=================\n\n");
+            printf("===========================\n\n");
         }
     }
 
@@ -130,6 +132,8 @@ int parse_json(const char *filename) {
 void print_json_and_exit(int sig) {
     if (sig == SIGINT) {
         printf("\nReceived SIGINT. Now printing JSON content ...\n");
+	timer = 1;
+
         FILE *file = fopen(filename, "r");
         if (!file) {
             perror("Error opening file");
@@ -142,6 +146,7 @@ void print_json_and_exit(int sig) {
         }
 
         fclose(file);
+	printf("===========================\n\n");
 
 	int timer = 3;
         
@@ -158,6 +163,7 @@ void print_json_and_exit(int sig) {
 void reload_and_print_json(int sig) {
     if (sig == SIGUSR1) {
         printf("\nReceived SIGUSR1. Now reloading and printing JSON content ...\n");
+	timer = 1;
 
         parse_json(filename);
 
@@ -173,6 +179,26 @@ void reload_and_print_json(int sig) {
         }
 
         fclose(file);
+	printf("===========================\n\n");
+
+	for (int i = 0; i < thread_num; i++) {
+		pthread_create(&threads[i], NULL, thread_function, &thread_indices[i]);
+	}
+
+	for (int i = 0; i < thread_num; i++) {
+		pthread_join(threads[i], NULL);
+	}
     }
 
 }
+
+void* thread_function(void* arg) {
+	int index = *(int*)arg;
+	for (int i = 0; i < repeat_num; i++) {
+		printf("Thread %s is running, %d times\n", thread_name[index], i+1);
+		sleep(1);
+	}
+
+	return;
+}
+

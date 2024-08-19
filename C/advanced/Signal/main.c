@@ -11,20 +11,28 @@ int thread_num = 0;
 int repeat_num = 0;
 char thread_name[256][256];
 const char *filename = "thread.json";
+pthread_t threads[256];
+int thread_indices[256];
+int timer = 1;
 
 int main() {
 	signal(SIGINT, print_json_and_exit);
 	signal(SIGUSR1, reload_and_print_json);
 	parse_json(filename);
 
-	int count = 0;
+	for (int i = 0; i < thread_num; i++) {
+		thread_indices[i] = i;
+		pthread_create(&threads[i], NULL, thread_function, &thread_indices[i]);
+	}
 
+	for (int i = 0; i < thread_num; i++) {
+		pthread_join(threads[i], NULL);
+	}
+	
+	printf("\n");
 	while (1) {
-		printf("\n---------------------\n");
-		printf("Thread is running %ds\n", count);
-		printf("Thread # %d, repeat # %d\n", thread_num, repeat_num);
-		printf("---------------------\n");
-		count++;
+		printf("Waiting for SIGNAL ... %ds\n", timer);
+		timer++;
 		sleep(1);
 	}
 
