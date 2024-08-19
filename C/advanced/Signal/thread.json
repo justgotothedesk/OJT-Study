@@ -1,0 +1,9 @@
+{
+    "repeat": 3,
+    "thread_num": 2,
+    "thread": [
+        {
+            "name": ["sub_thread", "thread"]
+        }
+    ]
+}
