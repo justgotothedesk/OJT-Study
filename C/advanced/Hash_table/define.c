@@ -5,6 +5,9 @@
 #include <time.h>
 #include <pthread.h>
 
+int random_index() {
+	return rand()%HASH_SIZE;
+}
 
 int hash_function(const char *key) {
     int hash = 0;
@@ -34,7 +37,8 @@ struct linked_list *create_node(const char *key) {
 }
 
 void insert_to_table(struct hash_table *table, const char *key) {
-    int index = hash_function(key);
+    // int index = hash_function(key);
+    int index = random_index();
     struct linked_list *new_node = create_node(key);
     new_node->next = table[index].head;
     table[index].head = new_node;

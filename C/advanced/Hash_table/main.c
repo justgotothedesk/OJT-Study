@@ -1,5 +1,5 @@
 #include "define.h"
-#include <stddef.h>
+#include <time.h>
 
 int main() {
 	struct hash_table table[HASH_SIZE];
@@ -8,6 +8,8 @@ int main() {
 		table[i].head = NULL;
 		table[i].list_entry = 0;
 	}
+
+	srand(time(NULL));
 
 	read_csv_and_insert("hash.csv", table);
 	print_hash_table(table);
