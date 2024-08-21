@@ -32,6 +32,8 @@ extern int repeat_num;
 extern int thread_num;
 extern char thread_name[256][256];
 
+extern __thread hash_table tls_table[HASH_SIZE];
+
 const char *status_to_string(ThreadStatus status);
 char *extract_value(const char *json_string, const char *key, char *buffer);
 int parse_json(const char *json_string);

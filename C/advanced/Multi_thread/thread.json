@@ -3,7 +3,7 @@
     "thread_num": 2,
     "thread": [
         {
-            "name": ["sub_thread", "thread"]
+            "name": ["Thread one", "Thread two"]
         }
     ]
 }

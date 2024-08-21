@@ -11,6 +11,8 @@ int repeat_num;
 int thread_num;
 char thread_name[256][256];
 
+__thread hash_table tls_table[HASH_SIZE];
+
 const char *status_to_string(ThreadStatus status) {
     switch (status) {
         case INIT:
@@ -209,7 +211,13 @@ void *thread_func(void *arg) {
 
     thread_info->status = INIT;
     printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
-    read_csv_and_insert("hash.csv", thread_info->table);
+
+    for (int i = 0; i < HASH_SIZE; i++) {
+	    tls_table[i].head = NULL;
+	    tls_table[i].list_entry = 0;
+    }
+
+    read_csv_and_insert("hash.csv", tls_table);
     printf("\n");
 
     sleep(1);
@@ -222,17 +230,17 @@ void *thread_func(void *arg) {
 
     thread_info->status = SLEEP;
     printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
-    print_hash_table(thread_info->table, thread_info);
+    print_hash_table(tls_table, thread_info);
     printf("\n");
 
     sleep(1);
 
     thread_info->status = DONE;
     printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
-    print_hash_table(thread_info->table, thread_info);
+    print_hash_table(tls_table, thread_info);
     printf("\n");
 
-    free_hash_table(thread_info->table);
+    free_hash_table(tls_table);
 
     return NULL;
 }
