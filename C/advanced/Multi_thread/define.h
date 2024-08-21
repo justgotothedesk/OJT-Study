@@ -42,3 +42,4 @@ void read_csv_and_insert(const char *filename, hash_table *table);
 void print_hash_table(hash_table *table, ThreadInfo *thread);
 void free_hash_table(hash_table *table);
 void *thread_func(void *arg);
+int random_index();

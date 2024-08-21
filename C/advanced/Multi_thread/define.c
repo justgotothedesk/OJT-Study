@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "define.h"
+#include <time.h>
 
 pthread_mutex_t print_mutex;
 int repeat_num;
@@ -150,7 +151,7 @@ linked_list *create_node(const char *key) {
 }
 
 void insert_to_table(hash_table *table, const char *key) {
-    int index = hash_function(key);
+    int index = random_index();
     linked_list *new_node = create_node(key);
     new_node->next = table[index].head;
     table[index].head = new_node;
@@ -208,28 +209,34 @@ void *thread_func(void *arg) {
 
     thread_info->status = INIT;
     printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
-
     read_csv_and_insert("hash.csv", thread_info->table);
+    printf("\n");
 
     sleep(1);
 
     thread_info->status = RUNNING;
     printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
+    printf("\n");
 
     sleep(1);
 
     thread_info->status = SLEEP;
     printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
     print_hash_table(thread_info->table, thread_info);
+    printf("\n");
 
     sleep(1);
 
     thread_info->status = DONE;
     printf("Thread %s's status: %s\n", thread_info->name, status_to_string(thread_info->status));
     print_hash_table(thread_info->table, thread_info);
+    printf("\n");
 
     free_hash_table(thread_info->table);
 
     return NULL;
 }
 
+int random_index() {
+	return rand()%HASH_SIZE;
+}

@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stddef.h>
 #include "define.h"
+#include <time.h>
 
 int thread_num = 0;
 int repeat_num = 0;
@@ -33,6 +34,8 @@ int main() {
     fread(json_string, 1, length, file);
     json_string[length] = '\0';
     fclose(file);
+
+    srand(time(NULL));
 
     parse_json(json_string);
 
