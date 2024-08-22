@@ -26,7 +26,7 @@ void start_packet_capture(const char *interface) {
 
 	handle = pcap_open_live(interface, BUFSIZ, 1, 1000, errbuf);
 	if (!handle) {
-		fprintf(stderr, "Can't open network %s interface\n", interface, errbuf);
+		fprintf(stderr, "Can't open network %s interface, because %s\n", interface, errbuf);
 		exit(EXIT_FAILURE);
 	}
 
