@@ -1,20 +1,17 @@
 CC = gcc
-CFLAGS = -g -Wall -lpcap
+CFLAGS = -g -Wall
 LDFLAGS = -lpcap
-TARGET = pcap.out
-OBJS = define.o main.o pcap_header.o
+TARGET = capture_traffic
+SRCS = main.c define.c pcap_header.c
+OBJS = $(SRCS:.c=.o)
+
+all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $(OBJS) $(LDFLAGS)
+	     $(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-define.o: define.c
-	$(CC) -c -o define.o define.c $(CFLAGS)
-
-main.o: main.c
-	$(CC) -c -o main.o main.c $(CFLAGS)
-
-pcap_header.o: pcap_header.c
-	$(CC) -c -o pcap_header.o pcap_header.c $(CFLAGS)
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(TARGET)
