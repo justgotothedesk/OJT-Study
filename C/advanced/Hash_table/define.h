@@ -1,7 +1,7 @@
 #ifndef DEFINE_H
 #define DEFINE_H
 
-#define HASH_SIZE 31
+#define HASH_SIZE 100
 
 struct hash_table {
 	struct linked_list *head;

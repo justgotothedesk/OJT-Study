@@ -1,5 +1,12 @@
 ### 이동
 - 상하좌우 커서 이동: h, j, k, l
+<<<<<<< HEAD
+=======
+- 창 상하/좌우 분할: :sp, :vp + 원하는 파일명
+    - 분할 창 닫기: :q
+    - 현재 창 외의 모든 창 닫기: :only
+- 분할 창 간 이동: ctrl+ww
+>>>>>>> ca0dbfd8c60f236ec3efff3d4d323d4e44c43218
 - 페이지 위/아래로 이동: shift+h, shift+l, shift+m
 - 맨 위/아래로 이동: gg, shift+g
 - 단어 시작 위치로 커서 이동: w
@@ -41,4 +48,7 @@
 - 코드 접기/펼치기: :zc/:zo
 - vim 창에서 ctags 명령어 사용: :tj+검색어 or ctrl+]
 - vim 창에서 cscope 명령어 사용: :cs find+질의종류+심벌
+<<<<<<< HEAD
 - 줄 번호 설정 및 해지: :+'set number'
+=======
+>>>>>>> ca0dbfd8c60f236ec3efff3d4d323d4e44c43218
