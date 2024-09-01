@@ -54,10 +54,11 @@ void read_csv_and_insert(const char *filename, struct hash_table *table) {
 
     char line[1024];
     while (fgets(line, sizeof(line), fp)) {
-        char *token = strtok(line, ", \n");
+	char *rest = line;
+        char *token = strtok_r(line, ", \n", &rest);
         while (token) {
             insert_to_table(table, token);
-            token = strtok(NULL, ", \n");
+            token = strtok_r(NULL, ", \n", &rest);
         }
     }
 
