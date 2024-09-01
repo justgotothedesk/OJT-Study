@@ -98,16 +98,19 @@ int parse_json(const char *filename) {
                     if (buffer[0] == '[') {
                         char *name_ptr = buffer + 1;
                         int name_index = 0;
+			char *rest;
 
-                        while ((name_ptr = strtok(name_ptr, ",]"))) {
+                        while ((name_ptr = strtok_r(name_ptr, ",]", &rest))) {
                             char *name_start = name_ptr;
                             while (*name_start == ' ' || *name_start == '\"') {
                                 name_start++;
                             }
+
                             char *name_end = name_start + strlen(name_start) - 1;
                             while (*name_end == ' ' || *name_end == '\"') {
                                 name_end--;
                             }
+
                             *(name_end + 1) = '\0';
 
                             printf("sub_thread name: %s\n", name_start);
