@@ -74,16 +74,19 @@ int parse_json(const char *json_string) {
                         char *name_ptr = buffer+1;
                         char name_buffer[256];
                         int name_index = 0;
+			char *rest;
 
-                        while ((name_ptr = strtok(name_ptr, ",]"))) {
+                        while ((name_ptr = strtok_r(name_ptr, ",]", &rest))) {
                             char *name_start = name_ptr;
                             while (*name_start == ' ' || *name_start == '\"') {
                                 name_start++;
                             }
+
                             char *name_end = name_start+strlen(name_start)-1;
                             while (*name_end == ' ' || *name_end == '\"') {
                                 name_end--;
                             }
+
                             *(name_end+1) ='\0';
 
                             printf("sub_thread name: %s\n", name_start);
@@ -104,7 +107,7 @@ int parse_json(const char *json_string) {
     return 1;
 }
 
-void genearte_random_word(char *word, int length) {
+void generate_random_word(char *word, int length) {
     const char charset[] = "abcdefghijklmnopqrstuvwxyz";
     int charset_size = sizeof(charset)-1;
 
@@ -122,7 +125,7 @@ void* thread_function(void* arg) {
 
     srand(time(NULL)+index);
         for (int i = 0; i < repeat_num; i++) {
-        genearte_random_word(random_word, length);
+        generate_random_word(random_word, length);
         printf("Thread %s running, random word: %s\n", thread_name[index], random_word);
     }
 
